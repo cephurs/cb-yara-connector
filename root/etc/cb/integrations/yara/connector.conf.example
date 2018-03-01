@@ -33,6 +33,14 @@ feed_host=0.0.0.0
 binary_filter_query=is_executable_image:true -(digsig_publisher:"Microsoft Corporation" and digsig_result:"Signed")
 
 ;
+; Increment nice value by the specified value.  Use this if the connector's CPU usage is too high.
+; For example, set yara_nice=20 to reduce the priority of the connector
+;
+; Default=0
+;
+;yara_nice=0
+
+;
 ; Number of concurrent threads
 ;
 ; Default=4

@@ -13,9 +13,18 @@ log.setLevel(logging.INFO)
 
 
 class YaraProvider(BinaryAnalysisProvider):
-    def __init__(self, name, yara_rule_directory):
+    def __init__(self, name, yara_rule_directory, nice):
         super(YaraProvider, self).__init__(name)
         self.yara_rules = self.compile_rules(yara_rule_directory)
+
+        #
+        # increment nice to make the yara connector run with a lower priority
+        #
+        try:
+            os.nice(nice)
+        except Exception as e:
+            log.error("Error in incrementing nice value")
+            log.error(str(e))
 
     def compile_rules(self, pathname):
         rule_map = {}
@@ -108,11 +117,13 @@ class YaraConnector(DetonationDaemon):
         return yara_provider
 
     def get_metadata(self):
-        return cbint.utils.feed.generate_feed(self.name, summary="Scan binaries collected by Carbon Black with Yara.",
+        return cbint.utils.feed.generate_feed(self.name,
+                                              summary="Scan binaries collected by Carbon Black with Yara.",
                                               tech_data="There are no requirements to share any data with Carbon Black to use this feed.",
                                               provider_url="http://plusvic.github.io/yara/",
                                               icon_path='/usr/share/cb/integrations/yara/yara-logo.png',
-                                              display_name="Yara", category="Connectors")
+                                              display_name="Yara",
+                                              category="Connectors")
 
     def validate_config(self):
         super(YaraConnector, self).validate_config()
@@ -120,6 +131,10 @@ class YaraConnector(DetonationDaemon):
         self.yara_rule_directory = self.get_config_string("yara_rule_directory", None)
         if not self.yara_rule_directory:
             raise ConfigurationError("A yara_rule_directory stanza is required in the configuration file")
+
+        self.nice = self.get_config_integer("yara_nice", 0)
+        if not self.nice:
+            self.nice = 0
 
         return True
 
@@ -133,6 +148,9 @@ if __name__ == '__main__':
     temp_directory = "/tmp/yara"
 
     config_path = os.path.join(my_path, "testing.conf")
-    daemon = YaraConnector('yaratest', configfile=config_path, work_directory=temp_directory,
-                           logfile=os.path.join(temp_directory, 'test.log'), debug=True)
+    daemon = YaraConnector('yaratest',
+                           configfile=config_path,
+                           work_directory=temp_directory,
+                           logfile=os.path.join(temp_directory, 'test.log'),
+                           debug=True)
     daemon.start()
